@@ -140,7 +140,7 @@ jobs:
       - name: kong2kic Kong Config
         run: |
           source $DECK_API_NAME/api/env-vars/env-vars
-          deck file kong2kic -s $DECK_API_NAME/api/deck-file/generated/kong-rendered.yaml -o $DECK_API_NAME/api/deck-file/generated/k8s.yaml
+          deck file kong2kic --ingress -s $DECK_API_NAME/api/deck-file/generated/kong-rendered.yaml -o $DECK_API_NAME/api/deck-file/generated/k8s.yaml
 
 
 
