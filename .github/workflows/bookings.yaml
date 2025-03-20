@@ -1,0 +1,143 @@
+name: Kong CI/CD Workflow
+
+on:
+  push:
+    branches:
+      - main  # You can specify which branches to trigger on
+
+env:
+  DECK_API_NAME: "bookings"
+  DECK_KONG_DEPLOYMENT: "dev"
+  KONNECT_ADDR: https://us.api.konghq.com
+  KONNECT_CONTROL_PLANE_NAME: "On Premise Hybrid Control Plane"
+  KONNECT_TOKEN: kpat_ct0GEm09jMtlwvPfkqxOfe38TgZ80VdOU4kfVQBBb48AHaZi1
+
+jobs:
+
+# LINTING
+# BREAKING CHANGES
+
+  generate_kong_config:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Generate Kong Config
+        run: |
+          echo $GITHUB_SHA
+          deck file openapi2kong -s $DECK_API_NAME/api/openapi-spec/openapi.yaml > $DECK_API_NAME/api/deck-file/generated/kong-generated.yaml
+
+      - name: Upload Kong Generated Config
+        uses: actions/upload-artifact@v4
+        with:
+          name: kong-generated.yaml
+          path: ${{ env.DECK_API_NAME }}/api/deck-file/generated/kong-generated.yaml
+
+  plugin_and_patch_kong_config:
+    runs-on: self-hosted
+    needs: generate_kong_config
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download Kong Generated Config
+        uses: actions/download-artifact@v4
+        with:
+          name: kong-generated.yaml
+          path: ${{ env.DECK_API_NAME }}/api/deck-file/generated
+
+      - name: Setup Environment Variables
+        run: source $DECK_API_NAME/api/env-vars/env-vars
+
+      - name: Patch Kong Config with Plugins
+        run: |
+          cat $DECK_API_NAME/api/deck-file/generated/kong-generated.yaml | deck file add-plugins -s - $DECK_API_NAME/api/plugins/plugins.yaml | deck file patch -s - common/patches/patches.yaml | deck file patch -s - $DECK_API_NAME/api/patches/patches.yaml | deck file add-tags -s - $DECK_API_NAME > $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml
+          cat $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml
+
+      - name: Upload Kong Patched Config
+        uses: actions/upload-artifact@v4
+        with:
+          name: kong-plugined-and-patched.yaml
+          path: ${{ env.DECK_API_NAME }}/api/deck-file/generated/kong-plugined-and-patched.yaml
+
+  diff:
+    runs-on: self-hosted
+    needs: plugin_and_patch_kong_config
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download Kong Patched Config
+        uses: actions/download-artifact@v4
+        with:
+          name: kong-plugined-and-patched.yaml
+          path: ${{ env.DECK_API_NAME }}/api/deck-file/generated
+
+      - name: Setup Environment Variables
+        run: source ${{ env.DECK_API_NAME }}/api/env-vars/env-vars
+
+      - name: Diff Kong Config
+        run: |
+          source $DECK_API_NAME/api/env-vars/env-vars
+          deck gateway diff $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml common/plugin-templates/opentelemetry.yaml --konnect-addr $KONNECT_ADDR --konnect-control-plane-name "$KONNECT_CONTROL_PLANE_NAME" --konnect-token $KONNECT_TOKEN --select-tag $DECK_API_NAME --select-tag $DECK_OWNER
+
+# APPROVAL STAGE (SHOW SUMMARY OF DIFF), USE PULL TO APPROVE
+# BACKUP STAGE -> TO ARTEFACTS
+
+  # sync:
+  #   runs-on: self-hosted
+  #   needs: diff
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
+
+  #     - name: Download Kong Patched Config
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: kong-plugined-and-patched.yaml
+  #         path: ${{ env.DECK_API_NAME }}/api/deck-file/generated
+
+  #     - name: Setup Environment Variables
+  #       run: source ${{ env.DECK_API_NAME }}/api/env-vars/env-vars
+
+  #     - name: Diff Kong Config
+  #       run: |
+  #         source $DECK_API_NAME/api/env-vars/env-vars
+  #         deck gateway sync $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml common/plugin-templates/opentelemetry.yaml --konnect-addr $KONNECT_ADDR --konnect-control-plane-name "$KONNECT_CONTROL_PLANE_NAME" --konnect-token $KONNECT_TOKEN --select-tag $DECK_API_NAME --select-tag $DECK_OWNER
+
+# TEST STAGE
+# ROLLBACK STAGE
+
+  # Optional Dump and Dump API jobs
+  # dump:
+  #   runs-on: self-hosted
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
+  #
+  #     - name: Dump Kong Data
+  #       run: |
+  #         export DATETIME=$(date +"%Y%m%d%H%M%S")
+  #         deck gateway dump \
+  #           --headers Kong-Admin-Token:2906rmoPLnrX9C9EoO7T \
+  #           --kong-addr https://kong-admin-api-$DECK_KONG_DEPLOYMENT.kong-air.pve-1.schenkeveld.io \
+  #           --yes \
+  #           -o backups/kong-full-$DATETIME.yaml
+  #
+  # dump_api:
+  #   runs-on: self-hosted
+  #   if: ${{ github.event_name == 'push' }} # Trigger manually or on push
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
+  #
+  #     - name: Dump Kong API Data
+  #       run: |
+  #         export DATETIME=$(date +"%Y%m%d%H%M%S")
+  #         deck gateway dump \
+  #           --headers Kong-Admin-Token:2906rmoPLnrX9C9EoO7T \
+  #           --kong-addr https://kong-admin-api-$DECK_KONG_DEPLOYMENT.kong-air.pve-1.schenkeveld.io \
+  #           --select-tag $DECK_API_NAME \
+  #           --yes \
+  #           -o $DECK_API_NAME/api/deck-file/dumped/kong-$DATETIME.yaml
