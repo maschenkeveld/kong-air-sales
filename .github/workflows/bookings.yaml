@@ -60,7 +60,7 @@ jobs:
           cat $DECK_API_NAME/api/deck-file/generated/kong-generated.yaml | deck file add-plugins -s - $DECK_API_NAME/api/plugins/plugins.yaml | deck file patch -s - kong-air-common/patches/patches.yaml | deck file patch -s - $DECK_API_NAME/api/patches/patches.yaml | deck file add-tags -s - $DECK_API_NAME > $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml
           cat $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml
 
-      - name: Upload Kong Patched Config
+      - name: Upload Kong Plugined and Patched Config
         uses: actions/upload-artifact@v4
         with:
           name: kong-plugined-and-patched.yaml
@@ -90,7 +90,8 @@ jobs:
   #         source $DECK_API_NAME/api/env-vars/env-vars
   #         deck gateway diff $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml kong-air-common/plugin-templates/default-jwt.yaml --konnect-addr $KONNECT_ADDR --konnect-control-plane-name "$KONNECT_CONTROL_PLANE_NAME" --konnect-token $KONNECT_TOKEN --select-tag $DECK_API_NAME --select-tag $DECK_OWNER
 
-  kong2kic:
+
+  render_kong_config:
     runs-on: self-hosted
     needs: plugin_and_patch_kong_config
     steps:
@@ -109,10 +110,37 @@ jobs:
       - name: Setup Environment Variables
         run: source ${{ env.DECK_API_NAME }}/api/env-vars/env-vars
 
+      - name: Render Kong Config
+        run: |
+          source $DECK_API_NAME/api/env-vars/env-vars
+          deck file render $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml kong-air-common/plugin-templates/default-jwt.yaml >  $DECK_API_NAME/api/deck-file/generated/kong-rendered.yaml
+
+      - name: Upload Kong Rendered Config
+        uses: actions/upload-artifact@v4
+        with:
+          name: kong-rendered.yaml
+          path: ${{ env.DECK_API_NAME }}/api/deck-file/generated/kong-rendered.yaml
+
+  kong2kic:
+    runs-on: self-hosted
+    needs: render_kong_config
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Download Kong Rendered Config
+        uses: actions/download-artifact@v4
+        with:
+          name: kong-rendered.yaml
+          path: ${{ env.DECK_API_NAME }}/api/deck-file/generated
+
+      - name: Setup Environment Variables
+        run: source ${{ env.DECK_API_NAME }}/api/env-vars/env-vars
+
       - name: kong2kic Kong Config
         run: |
           source $DECK_API_NAME/api/env-vars/env-vars
-          deck file kong2kic -s $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml kong-air-common/plugin-templates/default-jwt.yaml -o $DECK_API_NAME/api/deck-file/generated/k8s.yaml
+          deck file kong2kic -s $DECK_API_NAME/api/deck-file/generated/kong-rendered.yaml -o $DECK_API_NAME/api/deck-file/generated/k8s.yaml
 
 
 
