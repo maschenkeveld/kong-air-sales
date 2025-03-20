@@ -41,6 +41,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Clone kong-air-common repository
+        run: git clone git@github.com:maschenkeveld/kong-air-common.git
+
       - name: Download Kong Generated Config
         uses: actions/download-artifact@v4
         with:
@@ -52,7 +55,7 @@ jobs:
 
       - name: Patch Kong Config with Plugins
         run: |
-          cat $DECK_API_NAME/api/deck-file/generated/kong-generated.yaml | deck file add-plugins -s - $DECK_API_NAME/api/plugins/plugins.yaml | deck file patch -s - common/patches/patches.yaml | deck file patch -s - $DECK_API_NAME/api/patches/patches.yaml | deck file add-tags -s - $DECK_API_NAME > $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml
+          cat $DECK_API_NAME/api/deck-file/generated/kong-generated.yaml | deck file add-plugins -s - $DECK_API_NAME/api/plugins/plugins.yaml | deck file patch -s - kong-air-common/patches/patches.yaml | deck file patch -s - $DECK_API_NAME/api/patches/patches.yaml | deck file add-tags -s - $DECK_API_NAME > $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml
           cat $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml
 
       - name: Upload Kong Patched Config
