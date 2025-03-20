@@ -1,9 +1,0 @@
----
-_format_version: '1.0'
-patches:
-- selectors:
-  - "$..services[*].routes[*]"
-  values:
-    hosts: 
-      - kong-proxy-dp-1-${{ env "DECK_KONG_DEPLOYMENT" }}.kong-air.pve-1.schenkeveld.io
-      - kong-proxy-dp-2-${{ env "DECK_KONG_DEPLOYMENT" }}.kong-air.pve-1.schenkeveld.io
