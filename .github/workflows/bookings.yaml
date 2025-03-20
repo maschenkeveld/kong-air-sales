@@ -66,29 +66,29 @@ jobs:
           name: kong-plugined-and-patched.yaml
           path: ${{ env.DECK_API_NAME }}/api/deck-file/generated/kong-plugined-and-patched.yaml
 
-  diff:
-    runs-on: self-hosted
-    needs: plugin_and_patch_kong_config
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
+  # diff:
+  #   runs-on: self-hosted
+  #   needs: plugin_and_patch_kong_config
+  #   steps:
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v2
 
-      - name: Clone kong-air-common repository
-        run: git clone git@github.com:maschenkeveld/kong-air-common.git
+  #     - name: Clone kong-air-common repository
+  #       run: git clone git@github.com:maschenkeveld/kong-air-common.git
 
-      - name: Download Kong Patched Config
-        uses: actions/download-artifact@v4
-        with:
-          name: kong-plugined-and-patched.yaml
-          path: ${{ env.DECK_API_NAME }}/api/deck-file/generated
+  #     - name: Download Kong Patched Config
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: kong-plugined-and-patched.yaml
+  #         path: ${{ env.DECK_API_NAME }}/api/deck-file/generated
 
-      - name: Setup Environment Variables
-        run: source ${{ env.DECK_API_NAME }}/api/env-vars/env-vars
+  #     - name: Setup Environment Variables
+  #       run: source ${{ env.DECK_API_NAME }}/api/env-vars/env-vars
 
-      - name: Diff Kong Config
-        run: |
-          source $DECK_API_NAME/api/env-vars/env-vars
-          deck gateway diff $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml kong-air-common/plugin-templates/default-jwt.yaml --konnect-addr $KONNECT_ADDR --konnect-control-plane-name "$KONNECT_CONTROL_PLANE_NAME" --konnect-token $KONNECT_TOKEN --select-tag $DECK_API_NAME --select-tag $DECK_OWNER
+  #     - name: Diff Kong Config
+  #       run: |
+  #         source $DECK_API_NAME/api/env-vars/env-vars
+  #         deck gateway diff $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml kong-air-common/plugin-templates/default-jwt.yaml --konnect-addr $KONNECT_ADDR --konnect-control-plane-name "$KONNECT_CONTROL_PLANE_NAME" --konnect-token $KONNECT_TOKEN --select-tag $DECK_API_NAME --select-tag $DECK_OWNER
 
   kong2kic:
     runs-on: self-hosted
@@ -112,7 +112,7 @@ jobs:
       - name: kong2kic Kong Config
         run: |
           source $DECK_API_NAME/api/env-vars/env-vars
-          deck file kong2kic $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml kong-air-common/plugin-templates/default-jwt.yaml -o $DECK_API_NAME/api/deck-file/generated/k8s.yaml
+          deck file kong2kic -s $DECK_API_NAME/api/deck-file/generated/kong-plugined-and-patched.yaml kong-air-common/plugin-templates/default-jwt.yaml -o $DECK_API_NAME/api/deck-file/generated/k8s.yaml
 
 
 
