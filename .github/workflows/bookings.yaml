@@ -17,7 +17,7 @@ jobs:
 # LINTING
 # BREAKING CHANGES
 
-  query-db:
+  query-db-for-service-exposure-1:
     runs-on: self-hosted
 
     env:  # Store environment variables at the job level
@@ -31,7 +31,7 @@ jobs:
       - name: Query PostgreSQL
         run: |
           # Run query and store output
-          RESULT=$(psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp_namespace, env FROM catalog WHERE service = $DECK_API_NAME;")
+          RESULT=$(psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp_namespace, env FROM catalog WHERE service = '$DECK_API_NAME';")
           
           # Check if result is empty
           if [ -z "$RESULT" ]; then
@@ -39,13 +39,6 @@ jobs:
             exit 1
           fi
 
-        # run: |
-        #   psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp_namespace, env FROM catalog;" | while IFS=',' read -r service dp_namespace env; do
-        #     echo "Processing service: $service"
-        #     echo "Namespace: $dp_namespace"
-        #     echo "Environment: $env"
-        #     echo "--------------------------"
-        #   done
   generate_kong_config:
     runs-on: self-hosted
     needs: query-db
@@ -172,8 +165,27 @@ jobs:
           source $DECK_API_NAME/api/env-vars/env-vars
           deck file kong2kic --ingress -s $DECK_API_NAME/api/deck-file/generated/kong-rendered.yaml -o $DECK_API_NAME/api/deck-file/generated/k8s.yaml
 
+  query-db-for-service-exposure-2:
+    runs-on: self-hosted
 
+    env:  # Store environment variables at the job level
+      PGHOST: postgres.pve-1.schenkeveld.io
+      PGPORT: 5432
+      PGUSER: github-actions-runner
+      PGPASSWORD: github-actions-runner
+      PGDATABASE: service-exposure-catalog
 
+    steps:
+      - name: Query PostgreSQL
+        run: |
+          # Run query and store output
+          RESULT=$(psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp_namespace, env FROM catalog WHERE service = '$DECK_API_NAME';")
+          
+        #    echo "Processing service: $service"
+        #     echo "Namespace: $dp_namespace"
+        #     echo "Environment: $env"
+        #     echo "--------------------------"
+        #   done
 
 
 # APPROVAL STAGE (SHOW SUMMARY OF DIFF), USE PULL TO APPROVE
