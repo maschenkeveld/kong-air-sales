@@ -17,6 +17,21 @@ jobs:
 # LINTING
 # BREAKING CHANGES
 
+  query-db:
+    runs-on: ubuntu-latest
+
+    env:  # Store environment variables at the job level
+      PGHOST: postgres.pve-1.schenkeveld.io
+      PGPORT: 5432
+      PGUSER: github-actions
+      PGPASSWORD: github-actions
+      PGDATABASE: service-exposure-catalog
+
+    steps:
+      - name: Query PostgreSQL
+        run: |
+          psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -c "SELECT * FROM catalog"
+
   generate_kong_config:
     runs-on: self-hosted
     steps:
