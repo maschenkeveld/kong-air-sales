@@ -174,14 +174,18 @@ jobs:
           
           PROMPT="Can you transform these Kong KIC manifests: $(cat $DECK_API_NAME/api/deck-file/generated/k8s.yaml) into Kong Gateway Operator manifests like these examples: $(cat .github/gwo-examples.yaml) YAML manifests? Please only output the transformed YAML manifests as a single file, divided by --- dividers."
 
+          ESCAPED_PROMPT=$(echo $PROMPT | jq -sRr @uri)
+
           echo "ChatGPT Prompt: $PROMPT"
+
+          echo "ChatGPT Escaped Prompt: $ESCAPED_PROMPT"
 
           RESPONSE=$(curl -s -X POST $API_URL \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer $OPENAI_API_KEY" \
             -d '{
                   "model": "'"$MODEL"'",
-                  "prompt": "'"$PROMPT"'",
+                  "prompt": "'"$ESCAPED_PROMPT"'",
                   "max_tokens": 10000
                 }')
 
