@@ -181,7 +181,7 @@ jobs:
 
           RESPONSE=$(curl http://10.22.0.98:11434/v1/chat/completions \
               -H "Content-Type: application/json" \
-              -d "{\"model\": \"gemma3\", \"messages\": [{\"role\": \"user\", \"content\": $ESCAPED_PROMPT }]}")
+              -d "{\"model\": \"gemma3:1b\", \"messages\": [{\"role\": \"user\", \"content\": $ESCAPED_PROMPT }]}")
 
 
           echo "Ollama Response: $RESPONSE"
