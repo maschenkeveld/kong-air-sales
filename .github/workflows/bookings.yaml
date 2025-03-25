@@ -30,12 +30,22 @@ jobs:
     steps:
       - name: Query PostgreSQL
         run: |
-          psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp_namespace, env FROM catalog;" | while IFS=',' read -r service dp_namespace env; do
-            echo "Processing service: $service"
-            echo "Namespace: $dp_namespace"
-            echo "Environment: $env"
-            echo "--------------------------"
-          done
+          # Run query and store output
+          RESULT=$(psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp_namespace, env FROM catalog WHERE service = $DECK_API_NAME;")
+          
+          # Check if result is empty
+          if [ -z "$RESULT" ]; then
+            echo "No results found. Stopping workflow."
+            exit 1
+          fi
+
+        # run: |
+        #   psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp_namespace, env FROM catalog;" | while IFS=',' read -r service dp_namespace env; do
+        #     echo "Processing service: $service"
+        #     echo "Namespace: $dp_namespace"
+        #     echo "Environment: $env"
+        #     echo "--------------------------"
+        #   done
   generate_kong_config:
     runs-on: self-hosted
     needs: query-db
