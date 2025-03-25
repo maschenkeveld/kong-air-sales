@@ -165,47 +165,71 @@ jobs:
           source $DECK_API_NAME/api/env-vars/env-vars
           deck file kong2kic -s $DECK_API_NAME/api/deck-file/generated/kong-rendered.yaml -o $DECK_API_NAME/api/deck-file/generated/k8s.yaml
 
-      - name: Split Kubernetes YAML
+      - name: Send prompt to ChatGPT API using Bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          # Define the file path
-          FILE_PATH="${{ env.DECK_API_NAME }}/api/deck-file/generated/k8s.yaml"
-          OUTPUT_DIR="${{ env.DECK_API_NAME }}/api/deck-file/generated/split_manifests"
+          API_URL="https://api.openai.com/v1/completions"
+          MODEL="GPT-4o"
+          
+          PROMPT="Can you transform these Kong KIC manifests: $(cat $DECK_API_NAME/api/deck-file/generated/k8s.yaml) into Kong Gateway Operator manifests like these examples: $(cat .github/gwo-examples.yaml) YAML manifests? Please only output the transformed YAML manifests as a single file, divided by --- dividers."
 
-          # Check if the file exists
-          if [[ ! -f "$FILE_PATH" ]]; then
-            echo "Error: $FILE_PATH does not exist. Stopping workflow."
-            exit 1
-          fi
+          RESPONSE=$(curl -s -X POST $API_URL \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $OPENAI_API_KEY" \
+            -d '{
+                  "model": "'"$MODEL"'",
+                  "prompt": "'"$PROMPT"'",
+                  "max_tokens": 10000
+                }')
 
-          # Create the output directory
-          mkdir -p "$OUTPUT_DIR"
+          # Extract the generated text from the API response
+          GENERATED_TEXT=$(echo $RESPONSE | jq -r '.choices[0].text')
 
-          # Split the YAML file at "---" dividers
-          csplit --quiet --prefix="$OUTPUT_DIR/manifest" "$FILE_PATH" '/^---$/' '{*}'
+          # Print the response
+          echo "ChatGPT Response: $GENERATED_TEXT"
 
-          # Iterate over split files and rename them
-          for file in "$OUTPUT_DIR"/manifest*; do
-            kind=$(yq e '.kind' "$file")
-            name=$(yq e '.metadata.name' "$file")
-
-            # Ensure both kind and name are present before renaming
-            if [[ -n "$kind" && -n "$name" ]]; then
-              new_filename="$OUTPUT_DIR/${kind}_${name}.yaml"
-              mv "$file" "$new_filename"
-              echo "Created $new_filename"
-            else
-              echo "Skipping file: $file (Missing kind or name)"
-            fi
-          done
-
-      - name: Upload Split YAMLs as Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: split-k8s-manifests
-          path: ${{ env.DECK_API_NAME }}/api/deck-file/generated/split_manifests/*.yaml
+          echo  $GENERATED_TEXT > $DECK_API_NAME/api/deck-file/generated/k8s_tranformed.yaml
 
 
+      # - name: Split Kubernetes YAML
+      #   run: |
+      #     # Define the file path
+      #     FILE_PATH="${{ env.DECK_API_NAME }}/api/deck-file/generated/k8s.yaml"
+      #     OUTPUT_DIR="${{ env.DECK_API_NAME }}/api/deck-file/generated/split_manifests"
 
+      #     # Check if the file exists
+      #     if [[ ! -f "$FILE_PATH" ]]; then
+      #       echo "Error: $FILE_PATH does not exist. Stopping workflow."
+      #       exit 1
+      #     fi
+
+      #     # Create the output directory
+      #     mkdir -p "$OUTPUT_DIR"
+
+      #     # Split the YAML file at "---" dividers
+      #     csplit --quiet --prefix="$OUTPUT_DIR/manifest" "$FILE_PATH" '/^---$/' '{*}'
+
+      #     # Iterate over split files and rename them
+      #     for file in "$OUTPUT_DIR"/manifest*; do
+      #       kind=$(yq e '.kind' "$file")
+      #       name=$(yq e '.metadata.name' "$file")
+
+      #       # Ensure both kind and name are present before renaming
+      #       if [[ -n "$kind" && -n "$name" ]]; then
+      #         new_filename="$OUTPUT_DIR/${kind}_${name}.yaml"
+      #         mv "$file" "$new_filename"
+      #         echo "Created $new_filename"
+      #       else
+      #         echo "Skipping file: $file (Missing kind or name)"
+      #       fi
+      #     done
+
+      # - name: Upload Split YAMLs as Artifacts
+      #   uses: actions/upload-artifact@v4
+      #   with:
+      #     name: split-k8s-manifests
+      #     path: ${{ env.DECK_API_NAME }}/api/deck-file/generated/split_manifests/*.yaml
 
   query-db-for-service-exposure-2:
     runs-on: self-hosted

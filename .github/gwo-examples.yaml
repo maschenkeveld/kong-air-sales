@@ -1,0 +1,59 @@
+kind: KongService
+apiVersion: configuration.konghq.com/v1alpha1
+metadata:
+  name: service
+  namespace: default
+spec:
+  name: service
+  host: example.com
+  controlPlaneRef:
+    type: konnectNamespacedRef # This indicates that an in cluster reference is used
+    konnectNamespacedRef:
+      name: gateway-control-plane # Reference to the KonnectGatewayControlPlane object
+---
+kind: KongRoute
+apiVersion: configuration.konghq.com/v1alpha1
+metadata:
+  name: route-with-service
+  namespace: default
+spec:
+  name: route-with-service
+  protocols:
+  - http
+  hosts:
+  - example.com
+  serviceRef:
+    type: namespacedRef
+    namespacedRef:
+      name: service # KongService reference
+---
+kind: KongPlugin
+apiVersion: configuration.konghq.com/v1
+metadata:
+  namespace: default
+  name: rate-limiting-minute-10
+plugin: rate-limiting
+config:
+  policy: local
+  minute: 10
+---
+kind: KongPluginBinding
+apiVersion: configuration.konghq.com/v1alpha1
+metadata:
+  namespace: default
+  name: binding-combination-service-consumer
+spec:
+  pluginRef:
+    kind: KongPlugin
+    name: rate-limiting-minute-10
+  targets:
+    serviceRef:
+      group: configuration.konghq.com
+      kind: KongService
+      name: service-plugin-binding-combination
+    consumerRef:
+      name: consumer-plugin-binding-combination
+  controlPlaneRef:
+    type: konnectNamespacedRef
+    konnectNamespacedRef:
+      name: cp
