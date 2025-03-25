@@ -184,7 +184,7 @@ jobs:
             -d '{
             "model": "llama3.2",
             "messages": [
-              { "role": "user", "content": "$ESCAPED_PROMPT" }
+                { "role": "user", "content": "$PROMPT" }
               ]
             }')
 
