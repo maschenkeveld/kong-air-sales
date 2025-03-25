@@ -23,8 +23,8 @@ jobs:
     env:  # Store environment variables at the job level
       PGHOST: postgres.pve-1.schenkeveld.io
       PGPORT: 5432
-      PGUSER: github-actions
-      PGPASSWORD: github-actions
+      PGUSER: github-actions-runner
+      PGPASSWORD: github-actions-runner
       PGDATABASE: service-exposure-catalog
 
     steps:
