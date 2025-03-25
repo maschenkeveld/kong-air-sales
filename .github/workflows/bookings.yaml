@@ -30,7 +30,7 @@ jobs:
     steps:
       - name: Query PostgreSQL
         run: |
-          psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp_namespace, env FROM catalog;" | while IFS=',' read -r service dp_namespace env; do
+          psql -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -F ',' -c "SELECT service, dp-namespace, env FROM catalog;" | while IFS=',' read -r service dp_namespace env; do
             echo "Processing service: $service"
             echo "Namespace: $dp_namespace"
             echo "Environment: $env"
