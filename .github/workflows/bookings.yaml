@@ -18,7 +18,7 @@ jobs:
 # BREAKING CHANGES
 
   query-db:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     env:  # Store environment variables at the job level
       PGHOST: postgres.pve-1.schenkeveld.io
@@ -34,6 +34,7 @@ jobs:
 
   generate_kong_config:
     runs-on: self-hosted
+    needs: query-db
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
