@@ -173,7 +173,7 @@ jobs:
           
           PROMPT="Can you transform these Kong KIC manifests: $(cat $DECK_API_NAME/api/deck-file/generated/k8s.yaml) into Kong Gateway Operator manifests like these examples: $(cat .github/gwo-examples.yaml) YAML manifests? Please only output the transformed YAML manifests as a single file, divided by --- dividers."
 
-          ESCAPED_PROMPT=$(echo $PROMPT | jq -sRr @uri)
+          ESCAPED_PROMPT=$(echo $PROMPT | jq -R @json)
 
           echo "Ollama Prompt: $PROMPT"
 
