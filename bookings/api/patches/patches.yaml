@@ -5,7 +5,7 @@ patches:
     - $.services[?(@.name=="bookings-service")]
     values:
       host: "${a_variable_to_be_replaced_by_your_gitops_tool}"
-      port: 8082
+      port: "${another_variable_to_be_replaced_by_your_gitops_tool}"
       protocol: http
       plugins:
         - name: jwt
